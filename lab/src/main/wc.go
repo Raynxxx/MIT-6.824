@@ -5,6 +5,7 @@ import "fmt"
 import "mapreduce"
 import "strings"
 import "unicode"
+import "strconv"
 import "container/list"
 
 // our simplified version of MapReduce does not supply a
@@ -28,6 +29,12 @@ func Map(value string) *list.List {
 // of that key's string value. should return a single
 // output value for that key.
 func Reduce(key string, values *list.List) string {
+	var sum int = 0
+	for e := values.Front(); e != nil; e = e.Next() {
+		count, _ := strconv.Atoi(e.Value.(string))
+		sum += count
+	}
+	return strconv.Itoa(sum)
 }
 
 // Can be run in 3 ways:
