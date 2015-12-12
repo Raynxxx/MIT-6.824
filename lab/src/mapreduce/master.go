@@ -31,7 +31,7 @@ func (mr *MapReduce) RunMaster() *list.List {
 	mapChan := make(chan int, mr.nMap)
 	reduceChan := make(chan int, mr.nReduce)
 
-	handOutJob := func(worker string, operation JobType, index int) bool {
+	handOutJob := func(address string, operation JobType, index int) bool {
 		jobArgs := &DoJobArgs{mr.file, operation, index, 0}
 		reply := &DoJobReply{}
 		switch operation {
@@ -42,22 +42,23 @@ func (mr *MapReduce) RunMaster() *list.List {
 		default:
 			fmt.Printf("handOutJob: unknown Operation\n")
 		}
-		return call(worker, "Worker.DoJob", jobArgs, reply)
+		return call(address, "Worker.DoJob", jobArgs, reply)
 	}
 
 	scheduler := func(okChan chan int, operation JobType, index int) {
 		for {
-			var worker string
+			var workerAddr string
 			var isOk bool = false
 			select {
-			case worker = <-mr.idleChannel:
-				isOk = handOutJob(worker, operation, index)
-			case worker = <-mr.registerChannel:
-				isOk = handOutJob(worker, operation, index)
+			case workerAddr = <-mr.idleChannel:
+				isOk = handOutJob(workerAddr, operation, index)
+			case workerAddr = <-mr.registerChannel:
+				mr.Workers[workerAddr] = &WorkerInfo{workerAddr}
+				isOk = handOutJob(workerAddr, operation, index)
 			}
 			if isOk {
 				okChan <- index
-				mr.idleChannel <- worker
+				mr.idleChannel <- workerAddr
 				return
 			}
 		}
